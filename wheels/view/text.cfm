@@ -14,21 +14,24 @@
 	<cfscript>
 		var loc = {};
 		$args(name="autoLink", args=arguments);
+		loc.regEx = "(?:^|>|\s+)(?:(?:<a\s[^>]+)?";
+		//loc.regEx = "(?:(?:[>|\s+]<a\s[^>]+)?";
+		//loc.regEx = "(?:^|[\s\b]+|>)(?:(?:^|[\s\b]|>+<a\s[^>]+)?";
 		if (arguments.link != "emailAddresses")
 		{
-			if(arguments.relative)
-			{
-				arguments.regex = "(?:(?:<a\s[^>]+)?(?:https?://|www\.|\/)[^\s\b]+)";
-			}
-			else
-			{
-				arguments.regex = "(?:(?:<a\s[^>]+)?(?:https?://|www\.)[^\s\b<]+)";
-			}
+//			if(arguments.relative)
+//			{
+				arguments.regex = "#loc.regEx#(?:https?://|www\.|\/)[^\s\b<]+)";
+//			}
+//			else
+//			{
+//				arguments.regex = "(?:^|>|\s+)(?:(?:<a\s[^>]+)?(?:https?://|www\.)[^\s\b<]+)";
+//			}
 			arguments.text = $autoLinkLoop(argumentCollection=arguments);
 		}
 		if (arguments.link != "URLs")
 		{
-			arguments.regex = "(?:(?:<a\s[^>]+)?(?:[^@\s]+)@(?:(?:[-a-z0-9]+\.)+[a-z]{2,}))";
+			arguments.regex = "#loc.regEx#(?:[^@\s]+)@(?:(?:[-a-z0-9]+\.)+[a-z]{2,}))";
 			arguments.protocol = "mailto:";
 			arguments.text = $autoLinkLoop(argumentCollection=arguments);
 		}
@@ -43,22 +46,40 @@
 	<cfscript>
 	var loc = {};
 	loc.PunctuationRegEx = "([^\w\/-]+)$";
+	loc.SpacesRegEx = "^(>|\s+)";
+	//loc.SpacesRegEx = "^(\s+)";
 	loc.startPosition = 1;
 	loc.match = ReFindNoCase(arguments.regex, arguments.text, loc.startPosition, true);
 	while(loc.match.pos[1] gt 0)
 	{
 		loc.startPosition = loc.match.pos[1] + loc.match.len[1];
 		loc.str = Mid(arguments.text, loc.match.pos[1], loc.match.len[1]);
+		//$dump(loc.str);
 		if (!FindOneOf("<>""'", ReplaceList(loc.str, "&lt;,&gt;,&quot;,&apos;", "<,>,"",'")))
+		//if (!FindOneOf("<""'", ReplaceList(loc.str, "&lt;,&quot;,&apos;", "<,"",'")))
 		{
-			arguments.text = RemoveChars(arguments.text, loc.match.pos[1], loc.match.len[1]);
-			// remove any sort of trailing puncuation
+			// the position of the string
+			loc.position = loc.match.pos[1];
+			// the length of the string
+			loc.length = loc.match.len[1];
+			// see if there is any leading spaces
+			loc.spaces = ArrayToList(ReMatchNoCase(loc.SpacesRegEx, loc.str));
+			// see if there is any trailing punctuation
 			loc.punctuation = ArrayToList(ReMatchNoCase(loc.PunctuationRegEx, loc.str));
+			// remove any leading spaces
+			loc.str = REReplaceNoCase(loc.str, loc.SpacesRegEx, "", "all");
+			// remove any sort of trailing puncuation
 			loc.str = REReplaceNoCase(loc.str, loc.PunctuationRegEx, "", "all");
+			// remove the capture string from the entire text
+			arguments.text = RemoveChars(arguments.text, loc.position, loc.length);
+			// concatinate the protocol to the string
 			arguments.href = arguments.protocol & loc.str;
-			loc.element = $element("a", arguments, loc.str, "text,regex,link,protocol,relative") & loc.punctuation;
-			arguments.text = Insert(loc.element, arguments.text, loc.match.pos[1]-1);
-			loc.startPosition = loc.match.pos[1] + len(loc.element);
+			// build anchor tag
+			loc.element = loc.spaces & $element("a", arguments, loc.str, "text,regex,link,protocol,relative") & loc.punctuation;
+			// insert the anchor into the entire text
+			arguments.text = Insert(loc.element, arguments.text, loc.position-1);
+			// calculate new starting position
+			loc.startPosition = loc.position + len(loc.element);
 		}
 		loc.startPosition++;
 		loc.match = ReFindNoCase(arguments.regex, arguments.text, loc.startPosition, true);
