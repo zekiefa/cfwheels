@@ -335,8 +335,8 @@
 					// this is a duplicate so we prepend the class name and then insert it unless a property with the resulting name already exist
 					loc.classData = loc.classes[loc.duplicateCount];
 
-					// prepend class name to the property
-					loc.newProperty = loc.classData.modelName & loc.property;
+					// prepend class name to the property limited at 30 characters
+					loc.newProperty = Left(loc.classData.modelName & loc.property, 30);
 
 					if (loc.iItem Contains " AS ")
 						loc.newItem = ReplaceNoCase(loc.iItem, " AS " & loc.property, " AS " & loc.newProperty);
