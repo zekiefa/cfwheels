@@ -164,7 +164,8 @@
 				AND TC.COLUMN_NAME = PKC.COLUMN_NAME
 				AND TC.OWNER = PKC.OWNER)
 		WHERE
-			TC.TABLE_NAME = '#UCase(arguments.table)#'
+			TC.TABLE_NAME = '#UCase(arguments.table)#' AND
+			TC.OWNER = '#UCase(arguments.username)#'
 		ORDER BY
 			TC.COLUMN_ID
 		</cfquery>
